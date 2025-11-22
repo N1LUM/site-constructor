@@ -93,21 +93,17 @@ func (s *UserService) Update(id uuid.UUID, input user_context.UpdateUserInput) (
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
-	//TODO: переписать лаконичнее
 	if input.Name != nil {
 		user.Name = *input.Name
 	}
 	if input.Username != nil {
 		user.Username = *input.Username
 	}
-
 	if input.Password != nil {
-		hashedPassword, err := hashPassword(*input.Password)
-		if err != nil {
+		if user.Password, err = hashPassword(*input.Password); err != nil {
 			logrus.Errorf("[UserService] Failed to hash password: %v", err)
 			return nil, err
 		}
-		user.Password = hashedPassword
 	}
 
 	updatedUser, err := s.repo.Update(user)

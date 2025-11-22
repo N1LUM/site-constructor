@@ -5,14 +5,18 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"site-constructor/configs"
 	"site-constructor/internal/auth"
 	"site-constructor/internal/database"
 	"site-constructor/internal/handler"
 	"site-constructor/internal/repository"
 	"site-constructor/internal/service"
+	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 )
 
 func Run() {
@@ -43,11 +47,32 @@ func Run() {
 	services := service.NewService(repositories, jwtManager)
 	handlers := handler.NewHandler(services, jwtManager)
 
-	srv := new(configs.Server)
+	server := new(configs.Server)
 	address := configs.BuildAppAddress()
-	logrus.Infof("🚀 Starting server on %s", address)
 
-	if err := srv.Run(address, handlers.InitRoutes()); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logrus.Fatalf("❌ Error running HTTP server: %s", err)
+	go func() {
+		logrus.Infof("Starting server on %s", address)
+
+		if err := server.Run(address, handlers.InitRoutes()); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logrus.Fatalf("Error running HTTP server: %s", err)
+		}
+	}()
+
+	gracefulShutdown(server)
+}
+
+func gracefulShutdown(server *configs.Server) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logrus.Info("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logrus.Fatalf("Server forced to shutdown: %s", err)
 	}
+
+	logrus.Info("Server exited gracefully")
 }
