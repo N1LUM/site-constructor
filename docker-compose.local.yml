@@ -5,7 +5,7 @@ services:
     ports:
       - "5436:5432"
     env_file:
-      - .env.deploy
+      - .env
     deploy:
       resources:
         limits:
@@ -42,7 +42,7 @@ services:
     ports:
       - "6380:6379"
     env_file:
-      - .env.deploy
+      - .env
     command: >
       redis-server
       --requirepass ${REDIS_PASSWORD}
@@ -63,19 +63,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    networks:
-      - custom_net
-
-  app:
-    build: .
-    container_name: site-constructor
-    ports:
-      - "8080:8080"
-    env_file:
-      - .env.deploy
-    depends_on:
-      - postgres
-      - redis
     networks:
       - custom_net
 

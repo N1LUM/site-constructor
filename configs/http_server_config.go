@@ -24,7 +24,6 @@ func (s *Server) Run(addr string, handler http.Handler) error {
 	return s.httpServer.ListenAndServe()
 }
 
-// TODO сделать graceful shutdonw
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
 }
